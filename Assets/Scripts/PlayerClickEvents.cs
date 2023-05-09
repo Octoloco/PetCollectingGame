@@ -28,6 +28,8 @@ public class PlayerClickEvents : MonoBehaviour
     public bool selectedTileIsBlock = false;
     public bool selectedTileIsPath = false;
     public bool isBuiding = false;
+    public bool selectedTileIsObject = false;
+    public bool selectedRemove = false;
 
     private GameObject hitLast = null;
     private GameObject hitLastGround = null;
@@ -95,9 +97,16 @@ public class PlayerClickEvents : MonoBehaviour
                             hitLast = Grid.Instance.GetObjectTileByCoordinate(hit.transform.GetComponent<Tile>().tileDetails.xPosition, hit.transform.GetComponent<Tile>().tileDetails.yPosition).gameObject;
                         }
 
-                        if (Input.GetMouseButtonDown(0))
+                        if (Input.GetMouseButton(0))
                         {
-                            Grid.Instance.ReplaceTile(hit.transform.GetComponent<Tile>(), selectedFamilyID, selectedTileID, selectedTileIsBlock, selectedTileIsPath);
+                            if (selectedRemove)
+                            {
+                                Grid.Instance.RemoveObject(hit.transform.GetComponent<Tile>());
+                            }
+                            else
+                            {
+                                Grid.Instance.ReplaceTile(hit.transform.GetComponent<Tile>(), selectedFamilyID, selectedTileID, selectedTileIsBlock, selectedTileIsPath, selectedTileIsObject);
+                            }
                         }
                     }
                 }

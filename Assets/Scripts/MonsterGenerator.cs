@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using UnityEngine;
 
 public class MonsterGenerator : MonoBehaviour
@@ -11,7 +12,7 @@ public class MonsterGenerator : MonoBehaviour
     public GameObject monsterPrefab;
     public Transform monsterContainer;
 
-    
+
 
     private void Awake()
     {
@@ -33,26 +34,32 @@ public class MonsterGenerator : MonoBehaviour
         int serialNumber = System.Guid.NewGuid().GetHashCode();
         monster.SetStats(monsterScriptable, serialNumber, monsterID);
 
-        string json = JsonUtility.ToJson(monster.statSheet);
+        SaveMonster(monster.statSheet);
+    }
+
+    public void SaveMonster(MonsterStats statSheet)
+    {
+        string json = JsonUtility.ToJson(statSheet);
 
         string encryptedString = Encoder.StringCipher.Encrypt(json, Encoder.StringCipher.encoderPass);
 
         if (!System.IO.Directory.Exists(Application.persistentDataPath + "/Data/Mon/"))
         {
             System.IO.Directory.CreateDirectory(Application.persistentDataPath + "/Data/Mon/");
-            System.IO.File.WriteAllText(Application.persistentDataPath + "/Data/Mon/" + serialNumber, encryptedString);
         }
-        else
-        {
-            System.IO.File.WriteAllText(Application.persistentDataPath + "/Data/Mon/" + serialNumber, encryptedString);
-        }
+        System.IO.File.WriteAllText(Application.persistentDataPath + "/Data/Mon/" + statSheet.serialNumber, encryptedString);
+    }
+
+    public void DeleteMonster(MonsterStats statSheet)
+    {
+        System.IO.File.Delete(Application.persistentDataPath + "/Data/Mon/" + statSheet.serialNumber);
     }
 
     public void LoadMonsters()
     {
         IEnumerable<string> monstersSaved = System.IO.Directory.EnumerateFiles(Application.persistentDataPath + "/Data/Mon/");
 
-        foreach(string monsterSerialNumber in monstersSaved)
+        foreach (string monsterSerialNumber in monstersSaved)
         {
             string hash = System.IO.File.ReadAllText(monsterSerialNumber);
             string json = Encoder.StringCipher.Decrypt(hash, Encoder.StringCipher.encoderPass);

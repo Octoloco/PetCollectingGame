@@ -10,21 +10,33 @@ public struct MonsterStats
     public int currentXP;
     public int maxHP;
     public int maxXP;
-    public string name;
+    public string defaultName;
 
     public int attack;
     public int defense;
     public int specialDefense;
     public int specialAttack;
 
+    public float attackMod;
+    public float defenseMod;
+    public float specialAttackMod;
+    public float specialDefenseMod;
+
     public int currentHunger;
-    public int currentFreshness;
-    public int currentHappyness;
-    public int currentInspiration;
     public int maxHunger;
-    public int maxFreshness;
-    public int maxHappyness;
-    public int maxInspiration;
+    public int currentHungerTicks;
+    public int maxHungerTicks;
+
+    public float currentHappyness;
+    public float maxHappyness;
+
+    public int currentTalent;
+    public int maxTalent;
+    public int currentTalentTicks;
+    public int maxTalentTicks;
+
+    public float currentVirtue;
+    public float maxVirtue;
 
     public string mosterID;
     public int serialNumber;

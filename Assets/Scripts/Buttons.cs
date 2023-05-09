@@ -35,4 +35,14 @@ public class Buttons : MonoBehaviour
     {
         PlayerClickEvents.Instance.selectedTileIsBlock = isBlock;
     }
+
+    public void SelectBuildTileIsObject(bool isObject)
+    {
+        PlayerClickEvents.Instance.selectedTileIsObject = isObject;
+    }
+
+    public void SelectBuildTileIsRemoveObject(bool isRemove)
+    {
+        PlayerClickEvents.Instance.selectedRemove = isRemove;
+    }
 }

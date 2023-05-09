@@ -12,10 +12,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ed544895d746304f9ef4fd0b8af5270, type: 3}
   m_Name: 0000
   m_EditorClassIdentifier: 
-  attack: 10
-  specialAttack: 20
-  defense: 30
-  specialDefense: 40
   maxHP: 20
   maxXP: 50
   defaultName: TestMon
+  attack: 10
+  defense: 30
+  specialDefense: 40
+  specialAttack: 20
+  attackMod: 1
+  defenseMod: 1
+  specialAttackMod: 1
+  specialDefenseMod: 1
+  maxHunger: 20
+  maxHungerTicks: 2
+  maxTalent: 20
+  maxTalentTicks: 1
+  mosterID: 0000

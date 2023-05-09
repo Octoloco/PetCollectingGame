@@ -21,7 +21,6 @@ public class Grid : MonoBehaviour
     private List<List<Sprite>> pathBlockTilesSprites = new List<List<Sprite>>();
     private List<List<Sprite>> objectTilesSprites = new List<List<Sprite>>();
     private List<List<Sprite>> objectBlockTilesSprites = new List<List<Sprite>>();
-    private List<Sprite> groundTilesSprites = new List<Sprite>(); //remove
 
     public List<Tile> groundTiles = new List<Tile>();
     public List<Tile> objectTiles = new List<Tile>();
@@ -86,6 +85,30 @@ public class Grid : MonoBehaviour
                 }
             }
         }
+
+
+        tileFolders = Directory.GetDirectories(Application.dataPath + "/Resources/Objects");
+        foreach (string folder in tileFolders)
+        {
+            folderDir = folder.Split("\\");
+            tileFamilyFolders = Directory.GetDirectories(Application.dataPath + "/Resources/Objects/" + folderDir[1]);
+            foreach (string tileFamilyFolder in tileFamilyFolders)
+            {
+                List<Sprite> tempList = new List<Sprite>();
+                tileFamily = tileFamilyFolder.Split("\\");
+                spriteList = Resources.LoadAll<Sprite>("Objects/" + folderDir[1] + "/" + tileFamily[1]);
+
+                tempList.AddRange(spriteList);
+                if (folderDir[1] == "Block")
+                {
+                    objectBlockTilesSprites.Add(tempList);
+                }
+                else if (folderDir[1] == "UnBlock")
+                {
+                    objectTilesSprites.Add(tempList);
+                }
+            }
+        }
     }
 
     public void SetObjectTile(Tile tile, bool hasJson)
@@ -96,23 +119,25 @@ public class Grid : MonoBehaviour
         {
             tile.tileDetails.tileFamilyID = 0;
             tile.tileDetails.tileID = 0;
+            tile.tileDetails.isActive = false;
             tile.gameObject.SetActive(false);
         }
         else
         {
-            if (tile.tileDetails.tileFamilyID <= 0)
+            if (!tile.tileDetails.isActive)
             {
                 tile.gameObject.SetActive(false);
             }
             else
             {
-                if (tile.tileDetails.isBlockTile)
+                tile.gameObject.SetActive(true);
+                if (!tile.tileDetails.isBlockTile)
                 {
-                    spriteToSet = objectTilesSprites[tile.tileDetails.tileFamilyID - 1][tile.tileDetails.tileID];
+                    spriteToSet = objectTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
                 }
                 else
                 {
-                    spriteToSet = objectBlockTilesSprites[tile.tileDetails.tileFamilyID - 1][tile.tileDetails.tileID];
+                    spriteToSet = objectBlockTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
                 }
             }
         }
@@ -141,7 +166,7 @@ public class Grid : MonoBehaviour
                 }
                 else
                 {
-                    spriteToSet = pathBlockTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
+                    spriteToSet = pathTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
                 }
             }
             else
@@ -166,7 +191,7 @@ public class Grid : MonoBehaviour
         return 0;
     }
 
-    public void GenerateGrid(bool isGroundGrid, string json)
+    public void GenerateGroundGrid(string json)
     {
         for (int i = 0; i < gridXSize; i++)
         {
@@ -175,7 +200,7 @@ public class Grid : MonoBehaviour
                 GameObject newTile = Instantiate(tilePrefab, transform);
                 newTile.GetComponent<Tile>().tileDetails.xPosition = i;
                 newTile.GetComponent<Tile>().tileDetails.yPosition = j;
-                newTile.GetComponent<Tile>().tileDetails.isGround = isGroundGrid;
+                newTile.GetComponent<Tile>().tileDetails.isGround = true;
                 SetupTiles(newTile);
             }
         }
@@ -187,6 +212,31 @@ public class Grid : MonoBehaviour
             {
                 groundTiles[i].tileDetails = loadedMaps.groundTilesDetails[i];
                 SetTilesSprites(groundTiles[i], true);
+            }
+        }
+    }
+
+    public void GenerateObjectGrid(string json)
+    {
+        for (int i = 0; i < gridXSize; i++)
+        {
+            for (int j = 0; j < gridYSize; j++)
+            {
+                GameObject newTile = Instantiate(tilePrefab, transform);
+                newTile.GetComponent<Tile>().tileDetails.xPosition = i;
+                newTile.GetComponent<Tile>().tileDetails.yPosition = j;
+                newTile.GetComponent<Tile>().tileDetails.isGround = false;
+                SetupTiles(newTile);
+            }
+        }
+
+        if (json != null)
+        {
+            Maps loadedMaps = JsonUtility.FromJson<Maps>(json);
+            for (int i = 0; i < groundTiles.Count; i++)
+            {
+                objectTiles[i].tileDetails = loadedMaps.objectTilesDetails[i];
+                SetTilesSprites(objectTiles[i], true);
             }
         }
     }
@@ -210,22 +260,14 @@ public class Grid : MonoBehaviour
         SetTilesSprites(newTile.GetComponent<Tile>(), false);
     }
 
-    private void SetupTileLists()
+    private void SetupTileNeighbours()
     {
-        //for (int i = 0; i < objectTiles.Count; i++)
-        //{
-        //    if (objectTiles[i].tileDetails.isOccupied)
-        //    {
-        //        groundTiles[i].tileDetails.isOccupied = true;
-        //    }
-        //    else
-        //    {
-        //        groundTiles[i].tileDetails.isOccupied = false;
-        //        availbaleTiles.Add(groundTiles[i]);
-        //    }
-        //}
-
         foreach (Tile groundTile in groundTiles)
+        {
+            groundTile.SetupNeighbours();
+        }
+
+        foreach (Tile groundTile in objectTiles)
         {
             groundTile.SetupNeighbours();
         }
@@ -234,20 +276,30 @@ public class Grid : MonoBehaviour
     public struct Maps
     {
         public TileDetails[] groundTilesDetails;
+        public TileDetails[] objectTilesDetails;
     }
 
     public void SerializeMaps()
     {
         TileDetails[] groundTilesDetails;
+        TileDetails[] objectTilesDetails;
         List<TileDetails> groundTilesDetailsList = new List<TileDetails>();
+        List<TileDetails> objectTilesDetailsList = new List<TileDetails>();
         foreach (Tile tile in groundTiles)
         {
             groundTilesDetailsList.Add(tile.tileDetails);
         }
+
+        foreach (Tile tile in objectTiles)
+        {
+            objectTilesDetailsList.Add(tile.tileDetails);
+        }
         groundTilesDetails = groundTilesDetailsList.ToArray();
+        objectTilesDetails = objectTilesDetailsList.ToArray();
 
         Maps maps;
         maps.groundTilesDetails = groundTilesDetails;
+        maps.objectTilesDetails = objectTilesDetails;
 
         string mapJason = JsonUtility.ToJson(maps);
         string encryptedString = Encoder.StringCipher.Encrypt(mapJason, Encoder.StringCipher.encoderPass);
@@ -257,19 +309,27 @@ public class Grid : MonoBehaviour
     public void SaveMaps()
     {
         TileDetails[] groundTilesDetails;
+        TileDetails[] objectTilesDetails;
         List<TileDetails> groundTilesDetailsList = new List<TileDetails>();
+        List<TileDetails> objectTilesDetailsList = new List<TileDetails>();
         foreach (Tile tile in groundTiles)
         {
             groundTilesDetailsList.Add(tile.tileDetails);
         }
+
+        foreach (Tile tile in objectTiles)
+        {
+            objectTilesDetailsList.Add(tile.tileDetails);
+        }
         groundTilesDetails = groundTilesDetailsList.ToArray();
+        objectTilesDetails = objectTilesDetailsList.ToArray();
 
         Maps maps;
         maps.groundTilesDetails = groundTilesDetails;
+        maps.objectTilesDetails = objectTilesDetails;
 
         string mapJason = JsonUtility.ToJson(maps);
         string encryptedString = Encoder.StringCipher.Encrypt(mapJason, Encoder.StringCipher.encoderPass);
-        System.IO.File.Delete(Application.persistentDataPath + "/Data/Maps/Nursery");
         System.IO.File.WriteAllText(Application.persistentDataPath + "/Data/Maps/Nursery", encryptedString);
         Debug.Log("saved");
     }
@@ -284,37 +344,6 @@ public class Grid : MonoBehaviour
         {
             SetObjectTile(tile, hasJson);
         }
-
-
-
-        //foreach (Tile tile in groundTiles)
-        //{
-        //    Sprite tileSprite = groundTilesSprites[tile.tileDetails.tileID];
-        //    bool occupancy;
-        //    if (tile.tileDetails.tileID == 1)
-        //    {
-        //        occupancy = true;
-        //    }
-        //    else
-        //    {
-        //        occupancy = false;
-        //    }
-
-        //    tile.ChangeSprite(tileSprite, occupancy);
-        //}
-
-        //foreach (Tile tile in objectTiles)
-        //{
-        //    if (tile.tileDetails.tileID == groundTilesSprites.Count)
-        //    {
-        //        tile.gameObject.SetActive(false);
-        //    }
-        //    else
-        //    {
-        //        Sprite tileSprite = objectTilesSprites[tile.tileDetails.tileID - groundTilesSprites.Count - 1];
-        //        tile.ChangeSprite(tileSprite, true);
-        //    }
-        //}
     }
 
     private void LoadGrid()
@@ -324,9 +353,9 @@ public class Grid : MonoBehaviour
         if (!System.IO.Directory.Exists(Application.persistentDataPath + "/Data/Maps/"))
         {
             System.IO.Directory.CreateDirectory(Application.persistentDataPath + "/Data/Maps/");
-            GenerateGrid(true, null);
-            GenerateGrid(false, null);
-            SetupTileLists();
+            GenerateGroundGrid(null);
+            GenerateObjectGrid(null);
+            SetupTileNeighbours();
 
             SerializeMaps();
         }
@@ -334,9 +363,9 @@ public class Grid : MonoBehaviour
         {
             if (System.IO.Directory.GetFiles(Application.persistentDataPath + "/Data/Maps/").Length <= 0)
             {
-                GenerateGrid(true, null);
-                GenerateGrid(false, null);
-                SetupTileLists();
+                GenerateGroundGrid(null);
+                GenerateObjectGrid(null);
+                SetupTileNeighbours();
 
                 SerializeMaps();
             }
@@ -345,9 +374,9 @@ public class Grid : MonoBehaviour
                 string[] mapSaved = System.IO.Directory.GetFiles(Application.persistentDataPath + "/Data/Maps/");
                 string hash = System.IO.File.ReadAllText(mapSaved[0]);
                 string json = Encoder.StringCipher.Decrypt(hash, Encoder.StringCipher.encoderPass);
-                GenerateGrid(true, json);
-                GenerateGrid(false, json);
-                SetupTileLists();
+                GenerateGroundGrid(json);
+                GenerateObjectGrid(json);
+                SetupTileNeighbours();
             }
         }
 
@@ -410,60 +439,121 @@ public class Grid : MonoBehaviour
         return null;
     }
 
-    public void ReplaceTile(Tile tile, int newFamilyID, int newTileID, bool isBlock, bool isPath)
+    public void RemoveObject(Tile tile)
+    {
+        tile = GetObjectTileByCoordinate(tile.tileDetails.xPosition, tile.tileDetails.yPosition);
+
+        if (tile.tileDetails.isActive)
+        {
+            tile.tileDetails.isActive = false;
+            tile.tileDetails.isOccupied = false;
+            tile.tileDetails.isBlockTile = false;
+            tile.GetComponent<SpriteRenderer>().sprite = null;
+            tile.gameObject.SetActive(false);
+            tile = GetGroundTileByCoordinate(tile.tileDetails.xPosition, tile.tileDetails.yPosition);
+            FreeGroundTile(tile);
+        }
+
+        SaveMaps();
+    }
+
+    public Sprite GetPathSprite(TileDetails tileDetails)
+    {
+        Sprite selectedSprite;
+
+        if (tileDetails.isBlockTile)
+        {
+            selectedSprite = pathBlockTilesSprites[tileDetails.tileFamilyID][tileDetails.tileID];
+        }
+        else
+        {
+            selectedSprite = pathTilesSprites[tileDetails.tileFamilyID][tileDetails.tileID];
+        }
+
+        return selectedSprite;
+    }
+
+    public void ReplaceTile(Tile tile, int newFamilyID, int newTileID, bool isBlock, bool isPath, bool isObject)
     {
 
         Sprite spriteToSet = null;
 
-        tile.tileDetails.tileFamilyID = newFamilyID;
-        tile.tileDetails.tileID = newTileID;
+        
 
-        if (tile.tileDetails.isGround)
+        if (!isObject)
         {
+            tile = GetGroundTileByCoordinate(tile.tileDetails.xPosition, tile.tileDetails.yPosition);
+            tile.tileDetails.tileFamilyID = newFamilyID;
+            tile.tileDetails.tileID = newTileID;
+
             if (isPath)
             {
+                tile.tileDetails.isPathTile = true;
+
                 if (isBlock)
                 {
                     spriteToSet = pathBlockTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
-                    OccupyTile(tile);
+                    tile.tileDetails.isBlockTile = true;
+                    OccupyGroundTile(tile);
                 }
                 else
                 {
-                    spriteToSet = pathBlockTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
-                    FreeTile(tile);
+                    tile.tileDetails.isBlockTile = false;
+                    FreeGroundTile(tile);
+                    tile.PathChosen();
+                    tile.CheckForPath();
+                    SaveMaps();
+                    return;
                 }
             }
             else
             {
+                tile.tileDetails.isPathTile = false;
+
                 if (isBlock)
                 {
-                    Debug.Log(blockTilesSprites[tile.tileDetails.tileFamilyID].Count);
                     spriteToSet = blockTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
-                    OccupyTile(tile);
+                    tile.tileDetails.isBlockTile = true;
+                    OccupyGroundTile(tile);
                 }
                 else
                 {
                     spriteToSet = randomTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
-                    FreeTile(tile);
+                    tile.tileDetails.isBlockTile = false;
+                    tile.CheckForPath();
+                    FreeGroundTile(tile);
                 }
             }
         }
         else
         {
+            tile = GetObjectTileByCoordinate(tile.tileDetails.xPosition, tile.tileDetails.yPosition);
+            tile.tileDetails.tileFamilyID = newFamilyID;
+            tile.tileDetails.tileID = newTileID;
+            tile.tileDetails.isActive = true;
 
+            tile.gameObject.SetActive(true);
+
+            if (isBlock)
+            {
+                spriteToSet = objectBlockTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
+                tile.tileDetails.isBlockTile = true;
+                OccupyObjectTile(tile);
+                Tile groundTile = GetGroundTileByCoordinate(tile.tileDetails.xPosition, tile.tileDetails.yPosition);
+                OccupyGroundTile(groundTile);
+            }
+            else
+            {
+                spriteToSet = objectTilesSprites[tile.tileDetails.tileFamilyID][tile.tileDetails.tileID];
+                tile.tileDetails.isBlockTile = false;
+                FreeObjectTile(tile);
+                Tile groundTile = GetGroundTileByCoordinate(tile.tileDetails.xPosition, tile.tileDetails.yPosition);
+                FreeGroundTile(groundTile);
+            }
         }
 
         tile.GetComponent<SpriteRenderer>().sprite = spriteToSet;
-
-
-        //else if (newID > groundTilesSprites.Count)
-        //{
-        //    tile = GetObjectTileByCoordinate(tile.tileDetails.xPosition, tile.tileDetails.yPosition);
-        //    tile.gameObject.SetActive(true);
-        //    tile.ChangeSprite(objectTilesSprites[newID - groundTilesSprites.Count - 1], true);
-        //    tile.tileDetails.tileID = newID;
-        //}
-
+        SaveMaps();
     }
 
     public Tile GetRandomAvailableTile()
@@ -472,16 +562,18 @@ public class Grid : MonoBehaviour
         return availbaleTiles[index];
     }
 
-    public void OccupyTile(Tile targetTile)
+    public void OccupyGroundTile(Tile targetTile)
     {
-
         targetTile = GetGroundTileByCoordinate(targetTile.tileDetails.xPosition, targetTile.tileDetails.yPosition);
         targetTile.tileDetails.isOccupied = true;
-        targetTile.tileDetails.isBlockTile = true;
         availbaleTiles.Remove(targetTile);
+
+    }
+
+    public void OccupyObjectTile(Tile targetTile)
+    {
         targetTile = GetObjectTileByCoordinate(targetTile.tileDetails.xPosition, targetTile.tileDetails.yPosition);
         targetTile.tileDetails.isOccupied = true;
-        targetTile.tileDetails.isBlockTile = true;
 
     }
 
@@ -496,18 +588,28 @@ public class Grid : MonoBehaviour
 
     }
 
-    public void FreeTile(Tile targetTile)
+    public void FreeGroundTile(Tile targetTile)
     {
         targetTile = GetObjectTileByCoordinate(targetTile.tileDetails.xPosition, targetTile.tileDetails.yPosition);
-        if (!targetTile.tileDetails.isOccupied)
+        if (!targetTile.tileDetails.isBlockTile)
         {
-            targetTile.tileDetails.isOccupied = false;
-            targetTile.tileDetails.isBlockTile = false;
             targetTile = GetGroundTileByCoordinate(targetTile.tileDetails.xPosition, targetTile.tileDetails.yPosition);
-            targetTile.tileDetails.isOccupied = false;
-            targetTile.tileDetails.isBlockTile = false;
-            availbaleTiles.Add(targetTile);
+            if (!targetTile.tileDetails.isBlockTile)
+            {
+                targetTile.tileDetails.isOccupied = false;
+                availbaleTiles.Add(targetTile);
+            }
+            else
+            {
+                targetTile.tileDetails.isOccupied = true;
+            }
         }
+    }
+
+    public void FreeObjectTile(Tile targetTile)
+    {
+        targetTile = GetObjectTileByCoordinate(targetTile.tileDetails.xPosition, targetTile.tileDetails.yPosition);
+        targetTile.tileDetails.isOccupied = false;
     }
 
     public void ForceFreeTile(Tile targetTile)

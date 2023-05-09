@@ -41,4 +41,24 @@ public class MonsterManager : MonoBehaviour
     {
         return selectedMonster;
     }
+
+    public void KillMonster(int serialNumber)
+    {
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            if (transform.GetChild(i).GetComponent<Monster>().statSheet.serialNumber == serialNumber)
+            {
+                MonsterGenerator.Instance.DeleteMonster(transform.GetChild(i).GetComponent<Monster>().statSheet);
+                Destroy(transform.GetChild(i).gameObject);
+            }
+        }
+    }
+
+    public void TickMonsters()
+    {
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            transform.GetChild(i).GetComponent<Monster>().TickStats();
+        }
+    }
 }

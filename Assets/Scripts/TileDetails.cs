@@ -14,4 +14,5 @@ public struct TileDetails
     public bool isBlockTile;
     public bool isPathTile;
     public bool isGround;
+    public bool isActive;
 }
