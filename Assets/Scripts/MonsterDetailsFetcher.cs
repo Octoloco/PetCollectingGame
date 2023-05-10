@@ -23,6 +23,7 @@ public class MonsterDetailsFetcher : MonoBehaviour
         {
             slider = GetComponent<Slider>();
         }
+
     }
 
     public void FetchStat()
@@ -77,7 +78,6 @@ public class MonsterDetailsFetcher : MonoBehaviour
             }
             else if (statToFetch == "currentHappyness")
             {
-                Debug.Log(selectedMonster.statSheet.currentHappyness);
                 slider.value = selectedMonster.statSheet.currentHappyness;
             }
             else if (statToFetch == "currentVirtue")

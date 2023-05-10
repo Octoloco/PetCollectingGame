@@ -74,7 +74,6 @@ public class Monster : MonoBehaviour
             statSheet.currentTalent = 0;
         }
 
-        Debug.Log("MaxH " + statSheet.maxHappyness);
         statSheet.currentHappyness = (((float)statSheet.currentHunger / (float)statSheet.maxHunger) + ((float)statSheet.currentTalent / (float)statSheet.maxTalent)) / (float)statSheet.maxHappyness;
 
         MenuManager.Instance.UpdateMonsterDetails();

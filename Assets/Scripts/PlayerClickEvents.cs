@@ -123,83 +123,90 @@ public class PlayerClickEvents : MonoBehaviour
         }
         else if (Input.GetMouseButtonDown(0))
         {
-            Vector2 worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            RaycastHit2D hit = Physics2D.Raycast(worldPoint, Vector2.zero);
-
-            if (hit.collider != null)
+            if (!EventSystem.current.IsPointerOverGameObject())
             {
-                if (hit.transform.CompareTag("Monster"))
+                Vector2 worldPoint = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                RaycastHit2D hit = Physics2D.Raycast(worldPoint, Vector2.zero);
+
+                if (hit.collider != null)
                 {
-                    MonsterManager.instance.SelectMonster(hit.collider.gameObject.GetComponent<Monster>());
-                    MenuManager.Instance.UpdateMonsterDetails();
-                    MenuManager.Instance.ShowMCPanel();
+                    if (hit.transform.CompareTag("Monster"))
+                    {
+                        MonsterManager.instance.SelectMonster(hit.collider.gameObject.GetComponent<Monster>());
+                        MenuManager.Instance.UpdateMonsterDetails();
+                        MenuManager.Instance.ShowMCPanel();
+                    }
+                    else
+                    {
+                        MenuManager.Instance.HideMCPanel();
+                    }
                 }
                 else
                 {
                     MenuManager.Instance.HideMCPanel();
                 }
             }
-            else
+        }
+
+        if (!EventSystem.current.IsPointerOverGameObject())
+        {
+
+            if (Input.GetMouseButton(1))
             {
                 MenuManager.Instance.HideMCPanel();
-            }
-        }
-        
-        if (Input.GetMouseButton(1))
-        {
-            MenuManager.Instance.HideMCPanel();
 
-            difference = (Camera.main.ScreenToWorldPoint(Input.mousePosition)) - Camera.main.transform.position;
-            if (!drag)
-            {
-                drag = true;
-                origin = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                difference = (Camera.main.ScreenToWorldPoint(Input.mousePosition)) - Camera.main.transform.position;
+                if (!drag)
+                {
+                    drag = true;
+                    origin = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                }
             }
-        }
-        else
-        {
-            drag = false;
-            if ((Camera.main.transform.position - resetCamPosition).magnitude > 3 + (((5 / Camera.main.orthographicSize) - 1) * zoomToMoveMod))
+            else
             {
+                drag = false;
+                if ((Camera.main.transform.position - resetCamPosition).magnitude > 3 + (((5 / Camera.main.orthographicSize) - 1) * zoomToMoveMod))
+                {
+                    Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, resetCamPosition, Time.deltaTime / moveLerpSpeed);
+                }
+            }
+
+            if (drag)
+            {
+                Camera.main.transform.position = origin - difference;
+            }
+
+            if (Camera.main.orthographicSize <= 5 && Camera.main.orthographicSize >= 2)
+            {
+                Camera.main.orthographicSize -= Input.mouseScrollDelta.y * zoomSpeed;
+                zoomTotal += Input.mouseScrollDelta.y;
+                lerpIn = false;
+                lerpOut = false;
+            }
+            else if (Camera.main.orthographicSize > 5)
+            {
+                StartCoroutine(WaitForZoomLerpIn());
+            }
+            else
+            {
+                StartCoroutine(WaitForZoomLerpOut());
+            }
+
+            if (lerpIn)
+            {
+                Camera.main.orthographicSize = Mathf.Lerp(Camera.main.orthographicSize, 4.9f, Time.deltaTime / zoomLerpInSpeed);
+            }
+
+            if (lerpOut)
+            {
+                Camera.main.orthographicSize = Mathf.Lerp(Camera.main.orthographicSize, 2.1f, Time.deltaTime / zoomLerpInSpeed);
+            }
+
+            if (lerpReset)
+            {
+                Camera.main.orthographicSize = Mathf.Lerp(Camera.main.orthographicSize, 5.1f, Time.deltaTime / zoomLerpInSpeed);
                 Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, resetCamPosition, Time.deltaTime / moveLerpSpeed);
             }
-        }
-
-        if (drag)
-        {
-            Camera.main.transform.position = origin - difference;
-        }
-
-        if (Camera.main.orthographicSize <= 5 && Camera.main.orthographicSize >= 2)
-        {
-            Camera.main.orthographicSize -= Input.mouseScrollDelta.y * zoomSpeed;
-            zoomTotal += Input.mouseScrollDelta.y;
-            lerpIn = false;
-            lerpOut = false;
-        }
-        else if (Camera.main.orthographicSize > 5)
-        {
-            StartCoroutine(WaitForZoomLerpIn());
-        }
-        else
-        {
-            StartCoroutine(WaitForZoomLerpOut());
-        }
-
-        if (lerpIn)
-        {
-            Camera.main.orthographicSize = Mathf.Lerp(Camera.main.orthographicSize, 4.9f, Time.deltaTime / zoomLerpInSpeed);
-        }
-
-        if (lerpOut)
-        {
-            Camera.main.orthographicSize = Mathf.Lerp(Camera.main.orthographicSize, 2.1f, Time.deltaTime / zoomLerpInSpeed);
-        }
-
-        if (lerpReset)
-        {
-            Camera.main.orthographicSize = Mathf.Lerp(Camera.main.orthographicSize, 5.1f, Time.deltaTime / zoomLerpInSpeed);
-            Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, resetCamPosition, Time.deltaTime / moveLerpSpeed);
         }
     }
 
